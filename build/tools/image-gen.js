@@ -1,4 +1,6 @@
-import open from "open";
+// import open from "open";
+// import dotenv from "dotenv";
+export {};
 // export async function generateImageWithReplicate(
 //   prompt: string,
 //   options: Partial<ReplicatePredictionInput> = {}
@@ -59,7 +61,7 @@ import open from "open";
 //     throw error;
 //   }
 // }
-export async function displayGeneratedImage(imageUrl) {
-    await open(imageUrl);
-    console.error(`Image displayed at ${imageUrl}`);
-}
+// export async function displayGeneratedImage(imageUrl: string): Promise<void> {
+//   await open(imageUrl);
+//   console.error(`Image displayed at ${imageUrl}`);
+// }

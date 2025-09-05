@@ -1,4 +1,4 @@
-import open from "open";
+// import open from "open";
 // import dotenv from "dotenv";
 
 // dotenv.config();
@@ -100,7 +100,7 @@ interface ReplicatePredictionResponse {
 //   }
 // }
 
-export async function displayGeneratedImage(imageUrl: string): Promise<void> {
-  await open(imageUrl);
-  console.error(`Image displayed at ${imageUrl}`);
-}
+// export async function displayGeneratedImage(imageUrl: string): Promise<void> {
+//   await open(imageUrl);
+//   console.error(`Image displayed at ${imageUrl}`);
+// }

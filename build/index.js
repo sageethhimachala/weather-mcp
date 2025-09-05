@@ -1,9 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { 
-// generateImageWithReplicate,
-displayGeneratedImage, } from "./tools/image-gen.js";
+// import {
+//   generateImageWithReplicate,
+//   displayGeneratedImage,
+// } from "./tools/image-gen.js";
 const NWS_API_BASE = "https://api.weather.gov";
 const USER_AGENT = "weather-app/1.0";
 // Create server instance
@@ -44,16 +45,16 @@ const server = new McpServer({
             //     required: ["prompt"],
             //   },
             // },
-            display_image: {
-                description: "Display an image in the default web browser",
-                inputSchema: {
-                    type: "object",
-                    properties: {
-                        imageUrl: { type: "string" },
-                    },
-                    required: ["imageUrl"],
-                },
-            },
+            // display_image: {
+            //   description: "Display an image in the default web browser",
+            //   inputSchema: {
+            //     type: "object",
+            //     properties: {
+            //       imageUrl: { type: "string" },
+            //     },
+            //     required: ["imageUrl"],
+            //   },
+            // },
         },
     },
 });
@@ -230,19 +231,24 @@ server.tool("get_forecast", "Get weather forecast for a location", {
 //     };
 //   }
 // );
-server.tool("display_image", "Display an image in the default web browser", {
-    imageUrl: z.string().describe("The URL of the image to display"),
-}, async ({ imageUrl }) => {
-    await displayGeneratedImage(imageUrl);
-    return {
-        content: [
-            {
-                type: "text",
-                text: `Image displayed in browser ${imageUrl}`,
-            },
-        ],
-    };
-});
+// server.tool(
+//   "display_image",
+//   "Display an image in the default web browser",
+//   {
+//     imageUrl: z.string().describe("The URL of the image to display"),
+//   },
+//   async ({ imageUrl }) => {
+//     await displayGeneratedImage(imageUrl);
+//     return {
+//       content: [
+//         {
+//           type: "text",
+//           text: `Image displayed in browser ${imageUrl}`,
+//         },
+//       ],
+//     };
+//   }
+// );
 async function main() {
     const transport = new StdioServerTransport();
     await server.connect(transport);
