@@ -338,3 +338,10 @@ main().catch((error) => {
   console.error("Fatal error in main():", error);
   process.exit(1);
 });
+
+// Export default fetch handler for Cloudflare Worker runtime
+export default {
+  async fetch(request: Request): Promise<Response> {
+    return new Response("Weather MCP server is running!");
+  },
+};

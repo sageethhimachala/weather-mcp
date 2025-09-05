@@ -1,7 +1,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { generateImageWithReplicate, displayGeneratedImage, } from "./tools/image-gen.js";
+import { 
+// generateImageWithReplicate,
+displayGeneratedImage, } from "./tools/image-gen.js";
 const NWS_API_BASE = "https://api.weather.gov";
 const USER_AGENT = "weather-app/1.0";
 // Create server instance
@@ -32,16 +34,16 @@ const server = new McpServer({
                     required: ["latitude", "longitude"],
                 },
             },
-            generate_image: {
-                description: "Generate an image based on a prompt using Replicate",
-                inputSchema: {
-                    type: "object",
-                    properties: {
-                        prompt: { type: "string" },
-                    },
-                    required: ["prompt"],
-                },
-            },
+            // generate_image: {
+            //   description: "Generate an image based on a prompt using Replicate",
+            //   inputSchema: {
+            //     type: "object",
+            //     properties: {
+            //       prompt: { type: "string" },
+            //     },
+            //     required: ["prompt"],
+            //   },
+            // },
             display_image: {
                 description: "Display an image in the default web browser",
                 inputSchema: {
@@ -197,32 +199,37 @@ server.tool("get_forecast", "Get weather forecast for a location", {
         ],
     };
 });
-server.tool("generate_image", "Generate an image based on a prompt using Replicate", {
-    prompt: z.string().describe("prompt for image generation"),
-}, async ({ prompt }) => {
-    const imageUrl = await generateImageWithReplicate(prompt);
-    if (!imageUrl) {
-        return {
-            content: [
-                {
-                    type: "text",
-                    text: "Failed to generate image",
-                },
-            ],
-        };
-    }
-    const response = await fetch(imageUrl);
-    const arrayBuffer = await response.arrayBuffer();
-    const base64Data = Buffer.from(arrayBuffer).toString("base64");
-    return {
-        content: [
-            {
-                type: "text",
-                text: `Generated image URL: ${imageUrl}`,
-            },
-        ],
-    };
-});
+// server.tool(
+//   "generate_image",
+//   "Generate an image based on a prompt using Replicate",
+//   {
+//     prompt: z.string().describe("prompt for image generation"),
+//   },
+//   async ({ prompt }) => {
+//     const imageUrl = await generateImageWithReplicate(prompt);
+//     if (!imageUrl) {
+//       return {
+//         content: [
+//           {
+//             type: "text",
+//             text: "Failed to generate image",
+//           },
+//         ],
+//       };
+//     }
+//     const response = await fetch(imageUrl);
+//     const arrayBuffer = await response.arrayBuffer();
+//     const base64Data = Buffer.from(arrayBuffer).toString("base64");
+//     return {
+//       content: [
+//         {
+//           type: "text",
+//           text: `Generated image URL: ${imageUrl}`,
+//         },
+//       ],
+//     };
+//   }
+// );
 server.tool("display_image", "Display an image in the default web browser", {
     imageUrl: z.string().describe("The URL of the image to display"),
 }, async ({ imageUrl }) => {
@@ -245,3 +252,9 @@ main().catch((error) => {
     console.error("Fatal error in main():", error);
     process.exit(1);
 });
+// Export default fetch handler for Cloudflare Worker runtime
+export default {
+    async fetch(request) {
+        return new Response("Weather MCP server is running!");
+    },
+};
