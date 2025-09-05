@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import {
-  generateImageWithReplicate,
+  // generateImageWithReplicate,
   displayGeneratedImage,
 } from "./tools/image-gen.js";
 
@@ -37,16 +37,16 @@ const server = new McpServer({
           required: ["latitude", "longitude"],
         },
       },
-      generate_image: {
-        description: "Generate an image based on a prompt using Replicate",
-        inputSchema: {
-          type: "object",
-          properties: {
-            prompt: { type: "string" },
-          },
-          required: ["prompt"],
-        },
-      },
+      // generate_image: {
+      //   description: "Generate an image based on a prompt using Replicate",
+      //   inputSchema: {
+      //     type: "object",
+      //     properties: {
+      //       prompt: { type: "string" },
+      //     },
+      //     required: ["prompt"],
+      //   },
+      // },
       display_image: {
         description: "Display an image in the default web browser",
         inputSchema: {
@@ -273,40 +273,40 @@ server.tool(
   }
 );
 
-server.tool(
-  "generate_image",
-  "Generate an image based on a prompt using Replicate",
-  {
-    prompt: z.string().describe("prompt for image generation"),
-  },
-  async ({ prompt }) => {
-    const imageUrl = await generateImageWithReplicate(prompt);
+// server.tool(
+//   "generate_image",
+//   "Generate an image based on a prompt using Replicate",
+//   {
+//     prompt: z.string().describe("prompt for image generation"),
+//   },
+//   async ({ prompt }) => {
+//     const imageUrl = await generateImageWithReplicate(prompt);
 
-    if (!imageUrl) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: "Failed to generate image",
-          },
-        ],
-      };
-    }
+//     if (!imageUrl) {
+//       return {
+//         content: [
+//           {
+//             type: "text",
+//             text: "Failed to generate image",
+//           },
+//         ],
+//       };
+//     }
 
-    const response = await fetch(imageUrl);
-    const arrayBuffer = await response.arrayBuffer();
-    const base64Data = Buffer.from(arrayBuffer).toString("base64");
+//     const response = await fetch(imageUrl);
+//     const arrayBuffer = await response.arrayBuffer();
+//     const base64Data = Buffer.from(arrayBuffer).toString("base64");
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Generated image URL: ${imageUrl}`,
-        },
-      ],
-    };
-  }
-);
+//     return {
+//       content: [
+//         {
+//           type: "text",
+//           text: `Generated image URL: ${imageUrl}`,
+//         },
+//       ],
+//     };
+//   }
+// );
 
 server.tool(
   "display_image",
