@@ -203,18 +203,119 @@ export default {
                 },
             });
         }
-        // Only handle POST requests for MCP
+        // Handle GET requests (browser visits) with helpful information
+        if (request.method === "GET") {
+            return new Response(`
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Weather MCP Server</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .code { background: #f4f4f4; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .method { background: #e8f4f8; padding: 5px; margin: 5px 0; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>Weather MCP Server</h1>
+    <p>This is a Model Context Protocol (MCP) server that provides weather information using the National Weather Service API.</p>
+    
+    <h2>Available Tools</h2>
+    <div class="method">
+        <strong>get_alerts</strong> - Get weather alerts for a state
+        <br>Parameters: state (2-letter state code like "CA" or "NY")
+    </div>
+    <div class="method">
+        <strong>get_forecast</strong> - Get weather forecast for a location
+        <br>Parameters: latitude (number), longitude (number)
+    </div>
+    
+    <h2>Usage</h2>
+    <p>This server responds to JSON-RPC 2.0 POST requests. Example:</p>
+    <div class="code">
+POST https://weather-mcp.sageethhimachala.workers.dev/
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "method": "tools/list",
+  "id": 1
+}
+    </div>
+    
+    <h2>Test the API</h2>
+    <button onclick="testAPI()">Test tools/list</button>
+    <button onclick="testForecast()">Test forecast (San Francisco)</button>
+    <pre id="result" style="background: #f4f4f4; padding: 10px; border-radius: 4px; margin-top: 10px;"></pre>
+    
+    <script>
+    async function testAPI() {
+        try {
+            const response = await fetch(window.location.href, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jsonrpc: "2.0",
+                    method: "tools/list",
+                    id: 1
+                })
+            });
+            const result = await response.json();
+            document.getElementById('result').textContent = JSON.stringify(result, null, 2);
+        } catch (error) {
+            document.getElementById('result').textContent = 'Error: ' + error.message;
+        }
+    }
+    
+    async function testForecast() {
+        try {
+            const response = await fetch(window.location.href, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jsonrpc: "2.0",
+                    method: "tools/call",
+                    params: {
+                        name: "get_forecast",
+                        arguments: {
+                            latitude: 37.7749,
+                            longitude: -122.4194
+                        }
+                    },
+                    id: 2
+                })
+            });
+            const result = await response.json();
+            document.getElementById('result').textContent = JSON.stringify(result, null, 2);
+        } catch (error) {
+            document.getElementById('result').textContent = 'Error: ' + error.message;
+        }
+    }
+    </script>
+</body>
+</html>
+        `, {
+                headers: {
+                    "Content-Type": "text/html",
+                    "Access-Control-Allow-Origin": "*",
+                },
+            });
+        }
+        // Only handle POST requests for MCP JSON-RPC
         if (request.method !== "POST") {
             return new Response(JSON.stringify({
                 jsonrpc: "2.0",
-                error: { code: -32601, message: "Method not found" },
+                error: {
+                    code: -32601,
+                    message: "Method not found - This endpoint only accepts POST requests with JSON-RPC 2.0 format",
+                },
                 id: null,
             }), {
                 headers: {
                     "Content-Type": "application/json",
                     "Access-Control-Allow-Origin": "*",
                 },
-                status: 200, // JSON-RPC errors should return 200
+                status: 200,
             });
         }
         try {
