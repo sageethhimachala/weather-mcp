@@ -1,10 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-// import {
-//   generateImageWithReplicate,
-//   displayGeneratedImage,
-// } from "./tools/image-gen.js";
 
 const NWS_API_BASE = "https://api.weather.gov";
 const USER_AGENT = "weather-app/1.0";
@@ -37,26 +33,6 @@ const server = new McpServer({
           required: ["latitude", "longitude"],
         },
       },
-      // generate_image: {
-      //   description: "Generate an image based on a prompt using Replicate",
-      //   inputSchema: {
-      //     type: "object",
-      //     properties: {
-      //       prompt: { type: "string" },
-      //     },
-      //     required: ["prompt"],
-      //   },
-      // },
-      // display_image: {
-      //   description: "Display an image in the default web browser",
-      //   inputSchema: {
-      //     type: "object",
-      //     properties: {
-      //       imageUrl: { type: "string" },
-      //     },
-      //     required: ["imageUrl"],
-      //   },
-      // },
     },
   },
 });
@@ -128,7 +104,7 @@ interface ForecastResponse {
   };
 }
 
-// Register weather tools
+// Register weather tools for Node.js version
 server.tool(
   "get_alerts",
   "Get weather alerts for a state",
@@ -273,61 +249,6 @@ server.tool(
   }
 );
 
-// server.tool(
-//   "generate_image",
-//   "Generate an image based on a prompt using Replicate",
-//   {
-//     prompt: z.string().describe("prompt for image generation"),
-//   },
-//   async ({ prompt }) => {
-//     const imageUrl = await generateImageWithReplicate(prompt);
-
-//     if (!imageUrl) {
-//       return {
-//         content: [
-//           {
-//             type: "text",
-//             text: "Failed to generate image",
-//           },
-//         ],
-//       };
-//     }
-
-//     const response = await fetch(imageUrl);
-//     const arrayBuffer = await response.arrayBuffer();
-//     const base64Data = Buffer.from(arrayBuffer).toString("base64");
-
-//     return {
-//       content: [
-//         {
-//           type: "text",
-//           text: `Generated image URL: ${imageUrl}`,
-//         },
-//       ],
-//     };
-//   }
-// );
-
-// server.tool(
-//   "display_image",
-//   "Display an image in the default web browser",
-//   {
-//     imageUrl: z.string().describe("The URL of the image to display"),
-//   },
-
-//   async ({ imageUrl }) => {
-//     await displayGeneratedImage(imageUrl);
-//     return {
-//       content: [
-//         {
-//           type: "text",
-//           text: `Image displayed in browser ${imageUrl}`,
-//         },
-//       ],
-//     };
-//   }
-// );
-
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
@@ -346,7 +267,7 @@ if (
   });
 }
 
-// Cloudflare Worker fetch handler with proper MCP JSON-RPC support
+// Enhanced Cloudflare Worker fetch handler with better MCP JSON-RPC support
 export default {
   async fetch(request: Request): Promise<Response> {
     // Handle CORS preflight requests
@@ -369,8 +290,11 @@ export default {
           id: null,
         }),
         {
-          headers: { "Content-Type": "application/json" },
-          status: 405,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+          status: 200, // JSON-RPC errors should return 200
         }
       );
     }
@@ -385,15 +309,26 @@ export default {
       switch (method) {
         case "initialize":
           result = {
-            protocolVersion: "2025-06-18",
+            protocolVersion: "2024-11-05", // Use stable protocol version
             capabilities: {
               tools: {},
+              resources: {},
+              prompts: {},
+              logging: {},
             },
             serverInfo: {
               name: "weather",
               version: "1.0.0",
             },
           };
+          break;
+
+        case "notifications/initialized":
+          // This is a notification, no response needed
+          return new Response(null, { status: 204 });
+
+        case "ping":
+          result = {};
           break;
 
         case "tools/list":
@@ -405,7 +340,12 @@ export default {
                 inputSchema: {
                   type: "object",
                   properties: {
-                    state: { type: "string", minLength: 2, maxLength: 2 },
+                    state: {
+                      type: "string",
+                      minLength: 2,
+                      maxLength: 2,
+                      description: "Two-letter state code (e.g. CA, NY)",
+                    },
                   },
                   required: ["state"],
                 },
@@ -416,8 +356,18 @@ export default {
                 inputSchema: {
                   type: "object",
                   properties: {
-                    latitude: { type: "number", minimum: -90, maximum: 90 },
-                    longitude: { type: "number", minimum: -180, maximum: 180 },
+                    latitude: {
+                      type: "number",
+                      minimum: -90,
+                      maximum: 90,
+                      description: "Latitude of the location",
+                    },
+                    longitude: {
+                      type: "number",
+                      minimum: -180,
+                      maximum: 180,
+                      description: "Longitude of the location",
+                    },
                   },
                   required: ["latitude", "longitude"],
                 },
@@ -426,9 +376,34 @@ export default {
           };
           break;
 
+        case "resources/list":
+          result = {
+            resources: [],
+          };
+          break;
+
+        case "prompts/list":
+          result = {
+            prompts: [],
+          };
+          break;
+
         case "tools/call":
+          if (!params || !params.name) {
+            return createErrorResponse(-32602, "Invalid params", id);
+          }
+
           if (params.name === "get_alerts") {
-            const { state } = params.arguments;
+            const args = params.arguments || {};
+            if (!args.state) {
+              return createErrorResponse(
+                -32602,
+                "Missing required parameter: state",
+                id
+              );
+            }
+
+            const { state } = args;
             const stateCode = state.toUpperCase();
             const alertsUrl = `${NWS_API_BASE}/alerts?area=${stateCode}`;
             const alertsData = await makeNWSRequest<AlertsResponse>(alertsUrl);
@@ -458,7 +433,16 @@ export default {
               }
             }
           } else if (params.name === "get_forecast") {
-            const { latitude, longitude } = params.arguments;
+            const args = params.arguments || {};
+            if (args.latitude === undefined || args.longitude === undefined) {
+              return createErrorResponse(
+                -32602,
+                "Missing required parameters: latitude and/or longitude",
+                id
+              );
+            }
+
+            const { latitude, longitude } = args;
 
             // Get grid point data
             const pointsUrl = `${NWS_API_BASE}/points/${latitude.toFixed(
@@ -536,32 +520,16 @@ export default {
               }
             }
           } else {
-            return new Response(
-              JSON.stringify({
-                jsonrpc: "2.0",
-                error: { code: -32601, message: "Unknown tool" },
-                id,
-              }),
-              {
-                headers: { "Content-Type": "application/json" },
-                status: 400,
-              }
+            return createErrorResponse(
+              -32601,
+              `Unknown tool: ${params.name}`,
+              id
             );
           }
           break;
 
         default:
-          return new Response(
-            JSON.stringify({
-              jsonrpc: "2.0",
-              error: { code: -32601, message: "Method not found" },
-              id,
-            }),
-            {
-              headers: { "Content-Type": "application/json" },
-              status: 400,
-            }
-          );
+          return createErrorResponse(-32601, `Method not found: ${method}`, id);
       }
 
       // Return successful response
@@ -583,21 +551,39 @@ export default {
     } catch (error) {
       console.error("MCP Server Error:", error);
 
-      return new Response(
-        JSON.stringify({
-          jsonrpc: "2.0",
-          error: {
-            code: -32603,
-            message: "Internal error",
-            data: error instanceof Error ? error.message : String(error),
-          },
-          id: null,
-        }),
-        {
-          headers: { "Content-Type": "application/json" },
-          status: 500,
-        }
+      return createErrorResponse(
+        -32603,
+        "Internal error",
+        null,
+        error instanceof Error ? error.message : String(error)
       );
     }
   },
 };
+
+// Helper function to create error responses
+function createErrorResponse(
+  code: number,
+  message: string,
+  id: any,
+  data?: any
+): Response {
+  return new Response(
+    JSON.stringify({
+      jsonrpc: "2.0",
+      error: {
+        code,
+        message,
+        ...(data && { data }),
+      },
+      id,
+    }),
+    {
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
+      status: 200, // JSON-RPC errors should return HTTP 200
+    }
+  );
+}
